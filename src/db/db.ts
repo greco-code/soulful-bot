@@ -19,13 +19,22 @@ export const initDb = async () => {
       message_id INTEGER,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
+  `);
 
+  await db.exec(`
     CREATE TABLE IF NOT EXISTS attendees (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       event_id INTEGER NOT NULL,
-      user_id INTEGER NOT NULL,
+      user_id INTEGER,
       name TEXT NOT NULL,
       FOREIGN KEY(event_id) REFERENCES events(id)
+    );
+  `);
+
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS admins (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL UNIQUE
     );
   `);
 };

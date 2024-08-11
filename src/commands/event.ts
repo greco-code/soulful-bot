@@ -1,5 +1,5 @@
 import { Context, InlineKeyboard } from 'grammy';
-import { openDb } from '../db/db';
+import { openDb } from '../db';
 import { ButtonText, MessageText, Action } from '../const';
 
 export const eventCommand = async (ctx: Context) => {

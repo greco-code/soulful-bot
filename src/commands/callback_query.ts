@@ -1,6 +1,7 @@
 import {Context} from 'grammy';
-import {openDb} from '../db/db';
-import {Action, ButtonText, MessageText} from '../const';
+import {openDb} from '../db';
+import {Action, MessageText} from '../const';
+import {updateAttendeeList} from "../utils";
 
 export const handleCallbackQuery = async (ctx: Context) => {
   const callbackQuery = ctx.callbackQuery;
@@ -71,31 +72,5 @@ export const handleCallbackQuery = async (ctx: Context) => {
     ctx.answerCallbackQuery({text: MessageText.RSVCanceled});
   }
 
-  const attendees = await db.all('SELECT name, user_id FROM attendees WHERE event_id = ?', [eventId]);
-
-  const attendeeList = await Promise.all(
-      attendees.map(async (row: { name: string; user_id: number }, index: number) => {
-        try {
-          if (!ctx.chat) {
-            return;
-          }
-
-          const user = await ctx.api.getChatMember(ctx.chat.id, row.user_id);
-          const username = user.user.username ? ` (@${user.user.username})` : '';
-          return `${index + 1}. ${row.name}${username}`;
-        } catch (err) {
-          console.error(`Failed to fetch username for user_id: ${row.user_id}`, err);
-          return `${index + 1}. ${row.name}`;
-        }
-      })
-  );
-
-  const attendeeListText = attendeeList.join('\n');
-  const originalDescription = ctx.callbackQuery?.message?.text?.split(`\n\n${MessageText.AttendeeList}`)[0] || '';
-  const updatedDescription = `${originalDescription.trim()}\n\n${MessageText.AttendeeList}\n${attendeeListText}`;
-
-  ctx.editMessageText(updatedDescription, {
-    reply_markup: ctx.callbackQuery?.message?.reply_markup,
-    parse_mode: 'HTML',
-  });
+  await updateAttendeeList(ctx, parseInt(eventId), ctx.chatId, ctx.callbackQuery?.message?.message_id);
 };
