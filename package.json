@@ -1,0 +1,27 @@
+{
+  "name": "event-bot",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node build/bot.js",
+    "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
+    "cleanAll": "rm -rf node_modules yarn.lock build"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "devDependencies": {
+    "@types/node": "22.2.0",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "5.5.4"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "grammy": "^1.28.0",
+    "sqlite": "^5.1.1",
+    "sqlite3": "^5.1.7"
+  }
+}
