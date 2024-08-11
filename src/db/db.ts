@@ -1,40 +1,55 @@
-import sqlite3 from 'sqlite3';
-import { open } from 'sqlite';
+import { Pool } from 'pg';
+import { config } from 'dotenv';
 
-export const openDb = async () => {
-  return open({
-    filename: './database.db',
-    driver: sqlite3.Database,
-  });
+config();
+
+const pool = new Pool({
+  user: process.env.PGUSER,
+  host: process.env.PGHOST,
+  database: process.env.PGDATABASE,
+  password: process.env.PGPASSWORD,
+  port: parseInt(process.env.PGPORT || '5432', 10),
+});
+
+export const getDbClient = async () => {
+  return pool.connect();
 };
 
 export const initDb = async () => {
-  const db = await openDb();
+  const client = await getDbClient();
 
-  await db.exec(`
-    CREATE TABLE IF NOT EXISTS events (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      description TEXT NOT NULL,
-      max_attendees INTEGER NOT NULL,
-      message_id INTEGER,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    );
-  `);
+  try {
+    // Initialize your database schema
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS events (
+        id SERIAL PRIMARY KEY,
+        description TEXT NOT NULL,
+        max_attendees INTEGER NOT NULL,
+        message_id INTEGER,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
 
-  await db.exec(`
-    CREATE TABLE IF NOT EXISTS attendees (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      event_id INTEGER NOT NULL,
-      user_id INTEGER,
-      name TEXT NOT NULL,
-      FOREIGN KEY(event_id) REFERENCES events(id)
-    );
-  `);
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS attendees (
+        id SERIAL PRIMARY KEY,
+        event_id INTEGER NOT NULL REFERENCES events(id),
+        user_id INTEGER,
+        name TEXT NOT NULL
+      );
+    `);
 
-  await db.exec(`
-    CREATE TABLE IF NOT EXISTS admins (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      user_id INTEGER NOT NULL UNIQUE
-    );
-  `);
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS admins (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL UNIQUE
+      );
+    `);
+
+    console.log('Database initialized successfully.');
+  } catch (err) {
+    console.error('Failed to initialize database:', err);
+  } finally {
+    client.release();
+  }
 };

@@ -7,7 +7,7 @@ config();
 
 const bot = new Bot(process.env.BOT_TOKEN!);
 
-// Initialize the database
+// Initialize the database and start the bot
 initDb().then(async () => {
   // Add initial admin from .env file
   const initialAdminId = parseInt(process.env.ADMIN_ID || '', 10);
@@ -21,7 +21,7 @@ initDb().then(async () => {
       console.log(`Admin with ID ${initialAdminId} already exists.`);
     }
   } else {
-    console.error('No INITIAL_ADMIN_ID found in .env file.');
+    console.error('No ADMIN_ID found in .env file.');
   }
 
   // Set up all commands

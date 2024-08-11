@@ -1,17 +1,36 @@
-import { openDb } from './db';
+import {getDbClient} from './db';
 
 export const addAdmin = async (userId: number) => {
-  const db = await openDb();
-  await db.run('INSERT OR IGNORE INTO admins (user_id) VALUES (?)', [userId]);
+  const client = await getDbClient();
+  try {
+    await client.query('INSERT INTO admins (user_id) VALUES ($1) ON CONFLICT (user_id) DO NOTHING', [userId]);
+  } catch (err) {
+    console.error('Error adding admin:', err);
+  } finally {
+    client.release();
+  }
 };
 
 export const removeAdmin = async (userId: number) => {
-  const db = await openDb();
-  await db.run('DELETE FROM admins WHERE user_id = ?', [userId]);
+  const client = await getDbClient();
+  try {
+    await client.query('DELETE FROM admins WHERE user_id = $1', [userId]);
+  } catch (err) {
+    console.error('Error removing admin:', err);
+  } finally {
+    client.release();
+  }
 };
 
 export const isAdmin = async (userId: number): Promise<boolean> => {
-  const db = await openDb();
-  const result = await db.get('SELECT * FROM admins WHERE user_id = ?', [userId]);
-  return !!result;
+  const client = await getDbClient();
+  try {
+    const result = await client.query('SELECT * FROM admins WHERE user_id = $1', [userId]);
+    return result.rows.length > 0;
+  } catch (err) {
+    console.error('Error checking admin status:', err);
+    return false;
+  } finally {
+    client.release();
+  }
 };

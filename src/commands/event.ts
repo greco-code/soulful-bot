@@ -1,12 +1,12 @@
-import { Context, InlineKeyboard } from 'grammy';
-import { openDb } from '../db';
-import { ButtonText, MessageText, Action } from '../const';
+import {Context, InlineKeyboard} from 'grammy';
+import {getDbClient} from '../db';
+import {ButtonText, MessageText, Action} from '../const';
 
 export const eventCommand = async (ctx: Context) => {
   const args = ctx.message?.text?.split(' ').slice(1);
 
   if (!args || args.length === 0) {
-    ctx.reply(MessageText.ProvideEventInfo);
+    await ctx.reply(MessageText.ProvideEventInfo);
     return;
   }
 
@@ -14,28 +14,40 @@ export const eventCommand = async (ctx: Context) => {
   const eventDescription = args.slice(0, -1).join(' ').replace(/"/g, '');
 
   if (isNaN(maxAttendees)) {
-    ctx.reply(MessageText.InvalidNumber);
+    await ctx.reply(MessageText.InvalidNumber);
     return;
   }
 
-  const db = await openDb();
-  const result = await db.run('INSERT INTO events (description, max_attendees) VALUES (?, ?)', [
-    eventDescription,
-    maxAttendees,
-  ]);
+  const db = await getDbClient();
+  try {
+    const result = await db.query(
+        'INSERT INTO events (description, max_attendees) VALUES ($1, $2) RETURNING id',
+        [eventDescription, maxAttendees]
+    );
 
-  const keyboard = new InlineKeyboard()
-      .text(ButtonText.Register, `${Action.Register}:${result.lastID}`)
-      .text(ButtonText.Unregister, `${Action.Unregister}:${result.lastID}`);
+    const eventId = result.rows[0].id;
 
-  const message = await ctx.reply(`${eventDescription}`, {
-    reply_markup: keyboard,
-    parse_mode: 'HTML',
-  });
+    const keyboard = new InlineKeyboard()
+        .text(ButtonText.Register, `${Action.Register}:${eventId}`)
+        .text(ButtonText.Unregister, `${Action.Unregister}:${eventId}`);
 
-  await db.run('UPDATE events SET message_id = ? WHERE id = ?', [message.message_id, result.lastID]);
+    const messageThreadId = ctx.message?.message_thread_id;
 
-  if (ctx.message?.message_id && ctx.chat?.id) {
-    await ctx.api.deleteMessage(ctx.chat.id, ctx.message.message_id);
+    const message = await ctx.reply(`${eventDescription}`, {
+      reply_markup: keyboard,
+      parse_mode: 'HTML',
+      message_thread_id: messageThreadId,
+    });
+
+    await db.query('UPDATE events SET message_id = $1 WHERE id = $2', [message.message_id, eventId]);
+
+    if (ctx.message?.message_id && ctx.chat?.id) {
+      await ctx.api.deleteMessage(ctx.chat.id, ctx.message.message_id);
+    }
+  } catch (err) {
+    console.error('Error creating event:', err);
+    await ctx.reply(MessageText.Error);
+  } finally {
+    db.release();
   }
 };

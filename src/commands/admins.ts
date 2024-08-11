@@ -1,7 +1,7 @@
-import { Context } from 'grammy';
-import { addAdmin, isAdmin, openDb, removeAdmin } from '../db';
-import { MessageText } from '../const';
-import { isIdValid, updateAttendeeList } from '../utils';
+import {Context} from 'grammy';
+import {addAdmin, isAdmin, getDbClient, removeAdmin} from '../db';
+import {MessageText} from '../const';
+import {isIdValid, updateAttendeeList} from '../utils';
 
 export const addAdminCommand = async (ctx: Context) => {
   const isUserAdmin = await isAdmin(ctx.from?.id || 0);
@@ -43,20 +43,17 @@ export const removeAdminCommand = async (ctx: Context) => {
     return ctx.reply(MessageText.AdminNotExist);
   }
 
-  const db = await openDb();
-  const adminCount = await db.get<{ count: number }>('SELECT COUNT(*) as count FROM admins');
+  const db = await getDbClient();
+  const adminCountResult = await db.query('SELECT COUNT(*) as count FROM admins');
+  const adminCount = parseInt(adminCountResult.rows[0].count, 10);
 
-  if (adminCount?.count) {
-    if (adminCount.count <= 1) {
-      await ctx.reply(MessageText.LastAdmin);
-      return;
-    }
-
-    await removeAdmin(userId);
-    ctx.reply(MessageText.AdminRemoved);
-  } else {
-    ctx.reply(MessageText.Error);
+  if (adminCount <= 1) {
+    await ctx.reply(MessageText.LastAdmin);
+    return;
   }
+
+  await removeAdmin(userId);
+  ctx.reply(MessageText.AdminRemoved);
 };
 
 export const addPlayer = async (ctx: Context) => {
@@ -75,26 +72,27 @@ export const addPlayer = async (ctx: Context) => {
     return;
   }
 
-  const db = await openDb();
-  const event = await db.get('SELECT * FROM events WHERE message_id = ?', [messageId]);
+  const db = await getDbClient();
+  const eventResult = await db.query('SELECT * FROM events WHERE message_id = $1', [messageId]);
 
-  if (!event) {
+  if (eventResult.rows.length === 0) {
     await ctx.reply(MessageText.EventNotFound);
     return;
   }
 
-  // Check if the user is already in the list by name
-  const existingAttendee = await db.get('SELECT * FROM attendees WHERE event_id = ? AND name = ?', [
+  const event = eventResult.rows[0];
+
+  const existingAttendeeResult = await db.query('SELECT * FROM attendees WHERE event_id = $1 AND name = $2', [
     event.id,
     name,
   ]);
 
-  if (existingAttendee) {
+  if (existingAttendeeResult.rows.length > 0) {
     await ctx.reply(MessageText.PlayerAlreadyInList);
     return;
   }
 
-  await db.run('INSERT INTO attendees (event_id, user_id, name) VALUES (?, NULL, ?)', [
+  await db.query('INSERT INTO attendees (event_id, user_id, name) VALUES ($1, NULL, $2)', [
     event.id,
     name,
   ]);
@@ -118,26 +116,27 @@ export const removePlayer = async (ctx: Context) => {
     return;
   }
 
-  const db = await openDb();
-  const event = await db.get('SELECT * FROM events WHERE message_id = ?', [messageId]);
+  const db = await getDbClient();
+  const eventResult = await db.query('SELECT * FROM events WHERE message_id = $1', [messageId]);
 
-  if (!event) {
+  if (eventResult.rows.length === 0) {
     await ctx.reply(MessageText.EventNotFound);
     return;
   }
 
-  // Check if the player exists in the list by name
-  const existingAttendee = await db.get('SELECT * FROM attendees WHERE event_id = ? AND name = ?', [
+  const event = eventResult.rows[0];
+
+  const existingAttendeeResult = await db.query('SELECT * FROM attendees WHERE event_id = $1 AND name = $2', [
     event.id,
     name,
   ]);
 
-  if (!existingAttendee) {
+  if (existingAttendeeResult.rows.length === 0) {
     await ctx.reply(MessageText.PlayerNotInList);
     return;
   }
 
-  await db.run('DELETE FROM attendees WHERE event_id = ? AND name = ?', [
+  await db.query('DELETE FROM attendees WHERE event_id = $1 AND name = $2', [
     event.id,
     name,
   ]);
