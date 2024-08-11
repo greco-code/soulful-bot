@@ -18,7 +18,7 @@ services:
   app:
     build: .
     container_name: soulful-bot
-    command: yarn start
+    command: yarn dev
     volumes:
       - .:/app
     ports:
@@ -26,12 +26,7 @@ services:
     environment:
       BOT_TOKEN: ${BOT_TOKEN}
       ADMIN_ID: ${ADMIN_ID}
-      PGUSER: ${PGUSER}
-      PGPASSWORD: ${PGPASSWORD}
-      PGDATABASE: ${PGDATABASE}
-      PGHOST: postgres
-      PGPORT: 5432
-      DATABASE_URL: postgres://${PGUSER}:${PGPASSWORD}@postgres:5432/${PGDATABASE}
+      DATABASE_URL: postgres://${PGUSER}:${PGPASSWORD}@postgres:${PGPORT}/${PGDATABASE}
     depends_on:
       - postgres
     networks:
@@ -42,4 +37,4 @@ networks:
     driver: bridge
 
 volumes:
-  soulful-bot_my_pgdata:
+  my_pgdata:
