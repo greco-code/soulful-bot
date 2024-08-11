@@ -19,9 +19,24 @@ jobs:
           ssh-private-key: ${{ secrets.DO_SSH_KEY }}
 
       - name: Deploy to DigitalOcean
+        env:
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          ADMIN_ID: ${{ secrets.ADMIN_ID }}
+          PGUSER: ${{ secrets.PGUSER }}
+          PGPASSWORD: ${{ secrets.PGPASSWORD }}
+          PGDATABASE: ${{ secrets.PGDATABASE }}
+          PGHOST: ${{ secrets.PGHOST }}
+          PGPORT: ${{ secrets.PGPORT }}
         run: |
           ssh root@${{ secrets.DO_SERVER_IP }} << 'EOF'
             cd ~/soulful-bot
+            export BOT_TOKEN=${{ secrets.BOT_TOKEN }}
+            export ADMIN_ID=${{ secrets.ADMIN_ID }}
+            export PGUSER=${{ secrets.PGUSER }}
+            export PGPASSWORD=${{ secrets.PGPASSWORD }}
+            export PGDATABASE=${{ secrets.PGDATABASE }}
+            export PGHOST=${{ secrets.PGHOST }}
+            export PGPORT=${{ secrets.PGPORT }}
             git pull origin main
             docker-compose down
             docker-compose up -d --build

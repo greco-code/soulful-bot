@@ -27,8 +27,8 @@ services:
       PGUSER: ${PGUSER}
       PGPASSWORD: ${PGPASSWORD}
       PGDATABASE: ${PGDATABASE}
-      PGHOST: postgres
-      PGPORT: 5432
+      PGHOST: ${POHOST}
+      PGPORT: ${PGPORT}
       DATABASE_URL: postgres://${PGUSER}:${PGPASSWORD}@postgres:5432/${PGDATABASE}
     depends_on:
       - postgres
