@@ -10,6 +10,9 @@ COPY package.json yarn.lock ./
 # Install all dependencies (including dev dependencies)
 RUN yarn install --frozen-lockfile
 
+# Install PM2 globally
+RUN yarn global add pm2
+
 # Copy the rest of the application code
 COPY . .
 
@@ -26,4 +29,4 @@ ENV NODE_ENV production
 EXPOSE 3000
 
 # Start the bot
-CMD ["yarn", "start"]
+CMD ["pm2-runtime", "start", "ecosystem.config.js"]
