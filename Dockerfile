@@ -16,6 +16,12 @@ RUN yarn global add pm2
 # Copy the rest of the application code
 COPY . .
 
+# Copy the wait-for-it.sh script
+COPY wait-for-it.sh /usr/local/bin/wait-for-it.sh
+
+# Set permissions for wait-for-it.sh
+RUN chmod +x /usr/local/bin/wait-for-it.sh
+
 # Build the TypeScript code
 RUN yarn build
 
@@ -25,5 +31,5 @@ ENV NODE_ENV production
 # Expose the port the app runs on
 EXPOSE 3000
 
-# Start the bot
-CMD ["pm2-runtime", "start", "ecosystem.config.js"]
+# Start the bot using wait-for-it to ensure the database is ready
+CMD ["pm2-runtime", "ecosystem.config.js"]

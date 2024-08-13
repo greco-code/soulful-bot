@@ -18,7 +18,7 @@ services:
   app:
     build: .
     container_name: soulful-bot
-    command: pm2-runtime ecosystem.config.js
+    command: /usr/local/bin/wait-for-it.sh postgres:5432 -- pm2-runtime ecosystem.config.js
     ports:
       - "3000:3000"
     environment:
