@@ -19,9 +19,6 @@ COPY . .
 # Build the TypeScript code
 RUN yarn build
 
-# Remove dev dependencies after the build
-RUN yarn install --production --frozen-lockfile --ignore-scripts --prefer-offline
-
 # Set environment variables
 ENV NODE_ENV production
 

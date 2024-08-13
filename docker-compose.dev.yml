@@ -3,13 +3,13 @@ version: '3.8'
 services:
   postgres:
     image: postgres:13-alpine
-    container_name: soulful-postgres
+    container_name: soulful-postgres-dev
     environment:
       POSTGRES_USER: ${PGUSER}
       POSTGRES_PASSWORD: ${PGPASSWORD}
       POSTGRES_DB: ${PGDATABASE}
     volumes:
-      - my_pgdata:/var/lib/postgresql/data
+      - my_pgdata_dev:/var/lib/postgresql/data
     ports:
       - "5432:5432"
     networks:
@@ -17,11 +17,9 @@ services:
 
   app:
     build: .
-    container_name: soulful-bot
-    command: pm2-runtime ecosystem.config.js
-    ports:
-      - "3000:3000"
+    container_name: soulful-bot-dev
     environment:
+      NODE_ENV: development
       BOT_TOKEN: ${BOT_TOKEN}
       ADMIN_ID: ${ADMIN_ID}
       PGUSER: ${PGUSER}
@@ -29,15 +27,18 @@ services:
       PGDATABASE: ${PGDATABASE}
       PGHOST: ${PGHOST}
       PGPORT: ${PGPORT}
-      DATABASE_URL: postgres://${PGUSER}:${PGPASSWORD}@postgres:5432/${PGDATABASE}
+      DATABASE_URL: postgres://${PGUSER}:${PGPASSWORD}@postgres:${PGPORT}/${PGDATABASE}
     depends_on:
       - postgres
+    ports:
+      - "3000:3000"
     networks:
       - soulful-network
+    command: yarn dev
 
 networks:
   soulful-network:
     driver: bridge
 
 volumes:
-  my_pgdata:
+  my_pgdata_dev:

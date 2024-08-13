@@ -25,7 +25,7 @@ export const initDb = async () => {
         id SERIAL PRIMARY KEY,
         description TEXT NOT NULL,
         max_attendees INTEGER NOT NULL,
-        message_id INTEGER,
+        message_id BIGINT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `);
@@ -33,8 +33,8 @@ export const initDb = async () => {
     await client.query(`
       CREATE TABLE IF NOT EXISTS attendees (
         id SERIAL PRIMARY KEY,
-        event_id INTEGER NOT NULL REFERENCES events(id),
-        user_id INTEGER,
+        event_id BIGINT NOT NULL REFERENCES events(id),
+        user_id BIGINT,
         name TEXT NOT NULL
       );
     `);
@@ -42,7 +42,7 @@ export const initDb = async () => {
     await client.query(`
       CREATE TABLE IF NOT EXISTS admins (
         id SERIAL PRIMARY KEY,
-        user_id INTEGER NOT NULL UNIQUE
+        user_id BIGINT NOT NULL UNIQUE
       );
     `);
 

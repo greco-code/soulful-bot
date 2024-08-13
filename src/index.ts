@@ -3,7 +3,13 @@ import {setupBotCommands} from './commands';
 import {addAdmin, isAdmin, initDb} from './db';
 import {config} from 'dotenv';
 
-config();
+if (process.env.NODE_ENV === 'development') {
+  console.log('Environment: Local')
+  config({ path: '.env.local' });
+} else {
+  console.log('Environment: Dev')
+  config({ path: '.env' });
+}
 
 const bot = new Bot(process.env.BOT_TOKEN!);
 
