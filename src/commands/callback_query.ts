@@ -1,19 +1,25 @@
-import {Context} from 'grammy';
-import {getDbClient} from '../db';
-import {Action, MessageText} from '../const';
-import {updateAttendeeList} from "../utils";
+import { Context } from 'grammy';
+import {logger} from '../utils';
+import { getDbClient } from '../db';
+import { Action, MessageText } from '../const';
+import { updateAttendeeList } from "../utils";
 
 export const handleCallbackQuery = async (ctx: Context) => {
+  logger.info('Received callback query');
+
   const callbackQuery = ctx.callbackQuery;
 
   if (!callbackQuery?.data) {
-    await ctx.answerCallbackQuery({text: MessageText.InvalidAction});
+    logger.warn('Callback query data is missing');
+    await ctx.answerCallbackQuery({ text: MessageText.InvalidAction });
     return;
   }
+
   const userId = ctx.from?.id;
 
   if (!userId) {
-    await ctx.answerCallbackQuery({text: MessageText.UserNotFound});
+    logger.warn('User ID is missing in the callback query');
+    await ctx.answerCallbackQuery({ text: MessageText.UserNotFound });
     return;
   }
 
@@ -21,6 +27,8 @@ export const handleCallbackQuery = async (ctx: Context) => {
   const dbClient = await getDbClient();
 
   try {
+    logger.info(`Processing action "${action}" for event ID ${eventId} by user ${userId}`);
+
     const existingAttendee = await dbClient.query(
         'SELECT * FROM attendees WHERE event_id = $1 AND user_id = $2',
         [eventId, userId]
@@ -30,7 +38,8 @@ export const handleCallbackQuery = async (ctx: Context) => {
     const event = eventResult.rows[0];
 
     if (!event) {
-      ctx.answerCallbackQuery({text: MessageText.EventNotFound});
+      logger.warn(`Event ID ${eventId} not found`);
+      await ctx.answerCallbackQuery({ text: MessageText.EventNotFound });
       return;
     }
 
@@ -41,17 +50,20 @@ export const handleCallbackQuery = async (ctx: Context) => {
     const attendeeCount = attendeeCountResult.rows[0];
 
     if (!attendeeCount) {
+      logger.warn(`Could not retrieve attendee count for event ID ${eventId}`);
       return;
     }
 
     if (action === Action.Register) {
       if (existingAttendee.rows.length > 0) {
-        ctx.answerCallbackQuery({text: MessageText.AlreadyRegistered});
+        logger.info(`User ${userId} is already registered for event ID ${eventId}`);
+        await ctx.answerCallbackQuery({ text: MessageText.AlreadyRegistered });
         return;
       }
 
       if (attendeeCount.count >= event.max_attendees) {
-        ctx.answerCallbackQuery({text: MessageText.EventFull});
+        logger.info(`Event ID ${eventId} is full. User ${userId} cannot register`);
+        await ctx.answerCallbackQuery({ text: MessageText.EventFull });
         return;
       }
 
@@ -60,10 +72,12 @@ export const handleCallbackQuery = async (ctx: Context) => {
           [eventId, userId, `${ctx.from.first_name} ${ctx.from.last_name || ''}`.trim()]
       );
 
-      ctx.answerCallbackQuery({text: MessageText.RSVPConfirmed});
+      logger.info(`User ${userId} successfully registered for event ID ${eventId}`);
+      await ctx.answerCallbackQuery({ text: MessageText.RSVPConfirmed });
     } else if (action === Action.Unregister) {
       if (existingAttendee.rows.length === 0) {
-        ctx.answerCallbackQuery({text: MessageText.NotRegistered});
+        logger.info(`User ${userId} is not registered for event ID ${eventId}`);
+        await ctx.answerCallbackQuery({ text: MessageText.NotRegistered });
         return;
       }
 
@@ -72,13 +86,15 @@ export const handleCallbackQuery = async (ctx: Context) => {
         userId,
       ]);
 
-      ctx.answerCallbackQuery({text: MessageText.RSVCanceled});
+      logger.info(`User ${userId} successfully unregistered from event ID ${eventId}`);
+      await ctx.answerCallbackQuery({ text: MessageText.RSVCanceled });
     }
 
     await updateAttendeeList(ctx, parseInt(eventId), ctx.chatId, ctx.callbackQuery?.message?.message_id);
+    logger.info(`Updated attendee list for event ID ${eventId}`);
   } catch (error) {
-    console.error('Error handling callback query:', error);
-    ctx.answerCallbackQuery({text: MessageText.Error});
+    logger.error('Error handling callback query:', error);
+    await ctx.answerCallbackQuery({ text: MessageText.Error });
   } finally {
     dbClient.release();
   }

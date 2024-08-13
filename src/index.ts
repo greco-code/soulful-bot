@@ -1,14 +1,15 @@
+import {logger} from './utils';
 import {Bot} from 'grammy';
 import {setupBotCommands} from './commands';
 import {addAdmin, isAdmin, initDb} from './db';
 import {config} from 'dotenv';
 
 if (process.env.NODE_ENV === 'development') {
-  console.log('Environment: Local')
-  config({ path: '.env.local' });
+  logger.info('Environment: Local');
+  config({path: '.env.local'});
 } else {
-  console.log('Environment: Dev')
-  config({ path: '.env' });
+  logger.info('Environment: Dev');
+  config({path: '.env'});
 }
 
 const bot = new Bot(process.env.BOT_TOKEN!);
@@ -22,12 +23,12 @@ initDb().then(async () => {
     const isInitialAdmin = await isAdmin(initialAdminId);
     if (!isInitialAdmin) {
       await addAdmin(initialAdminId);
-      console.log(`Initial admin with ID ${initialAdminId} added.`);
+      logger.info(`Initial admin with ID ${initialAdminId} added.`);
     } else {
-      console.log(`Admin with ID ${initialAdminId} already exists.`);
+      logger.info(`Admin with ID ${initialAdminId} already exists.`);
     }
   } else {
-    console.error('No ADMIN_ID found in .env file.');
+    logger.error('No ADMIN_ID found in .env file.');
   }
 
   // Set up all commands
@@ -36,5 +37,5 @@ initDb().then(async () => {
   // Start the bot
   bot.start();
 }).catch((err) => {
-  console.error('Failed to initialize database:', err);
+  logger.error('Failed to initialize database:', err);
 });

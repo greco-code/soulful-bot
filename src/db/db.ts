@@ -1,5 +1,6 @@
-import { Pool } from 'pg';
-import { config } from 'dotenv';
+import {Pool} from 'pg';
+import {config} from 'dotenv';
+import {logger} from "../utils";
 
 config();
 
@@ -46,9 +47,9 @@ export const initDb = async () => {
       );
     `);
 
-    console.log('Database initialized successfully.');
+    logger.info('Database initialized successfully.');
   } catch (err) {
-    console.error('Failed to initialize database:', err);
+    logger.error('Failed to initialize database:', err);
   } finally {
     client.release();
   }
