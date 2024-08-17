@@ -16,6 +16,10 @@ RUN yarn install --frozen-lockfile
 # Install PM2 globally
 RUN yarn global add pm2
 
+# Copy the wait-for-it script and make it executable
+COPY wait-for-it.sh /usr/local/bin/wait-for-it.sh
+RUN chmod +x /usr/local/bin/wait-for-it.sh
+
 # Copy the rest of the application code
 COPY . .
 
