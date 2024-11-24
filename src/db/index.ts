@@ -1,2 +1,4 @@
 export * from './db';
-export * from './admins';
+export * from './admin';
+export * from './event';
+export * from './player';

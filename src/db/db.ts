@@ -1,6 +1,6 @@
-import {Pool} from 'pg';
-import {config} from 'dotenv';
-import {logger} from "../utils";
+import { Pool } from 'pg';
+import { config } from 'dotenv';
+import { logger } from "../utils";
 
 config();
 
@@ -10,17 +10,33 @@ const pool = new Pool({
   database: process.env.PGDATABASE,
   password: process.env.PGPASSWORD,
   port: parseInt(process.env.PGPORT || '5432', 10),
+  // Connection pool settings for better stability
+  max: 20, // Maximum number of clients in the pool
+  idleTimeoutMillis: 30000, // Close idle clients after 30 seconds
+  connectionTimeoutMillis: 2000, // Return an error after 2 seconds if connection could not be established
+});
+
+// Handle pool errors
+pool.on('error', (err) => {
+  logger.error('Unexpected error on idle client', err);
+  process.exit(-1);
 });
 
 export const getDbClient = async () => {
   return pool.connect();
 };
 
+export const closeDb = async () => {
+  logger.info('Closing database pool...');
+  await pool.end();
+  logger.info('Database pool closed');
+};
+
 export const initDb = async () => {
   const client = await getDbClient();
 
   try {
-    // Initialize your database schema
+    // Initialize database schema
     await client.query(`
       CREATE TABLE IF NOT EXISTS events (
         id SERIAL PRIMARY KEY,
@@ -50,6 +66,7 @@ export const initDb = async () => {
     logger.info('Database initialized successfully.');
   } catch (err) {
     logger.error('Failed to initialize database:', err);
+    throw err; // Re-throw to trigger process exit
   } finally {
     client.release();
   }

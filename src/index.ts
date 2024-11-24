@@ -1,41 +1,66 @@
-import {logger} from './utils';
-import {Bot} from 'grammy';
-import {setupBotCommands} from './commands';
-import {addAdmin, isAdmin, initDb} from './db';
-import {config} from 'dotenv';
+import { logger } from './utils';
+import { Bot } from 'grammy';
+import { setupBotCommands } from './commands';
+import { AdminService } from './services';
+import { initDb, closeDb } from './db';
 
-if (process.env.NODE_ENV === 'development') {
-  logger.info('Environment: Local');
-  config({path: '.env.local'});
-} else {
-  logger.info('Environment: Dev');
-  config({path: '.env'});
-}
+logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
 
 const bot = new Bot(process.env.BOT_TOKEN!);
 
-// Initialize the database and start the bot
+// Graceful shutdown handling
+const gracefulShutdown = async (signal: string) => {
+  logger.info(`Received ${signal}. Starting graceful shutdown...`);
+
+  try {
+    await bot.stop();
+    logger.info('Bot stopped gracefully');
+
+    await closeDb();
+    process.exit(0);
+  } catch (error) {
+    logger.error('Error during graceful shutdown:', error);
+    process.exit(1);
+  }
+};
+
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+
+// Handle uncaught exceptions
+process.on('uncaughtException', (error) => {
+  logger.error('Uncaught Exception:', error);
+  process.exit(1);
+});
+
+// Handle unhandled promise rejections
+process.on('unhandledRejection', (reason, promise) => {
+  logger.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  process.exit(1);
+});
+
+// Initialize and start
 initDb().then(async () => {
-  // Add initial admin from .env file
+  // Add initial admin from environment
   const initialAdminId = parseInt(process.env.ADMIN_ID || '', 10);
 
   if (initialAdminId) {
-    const isInitialAdmin = await isAdmin(initialAdminId);
-    if (!isInitialAdmin) {
-      await addAdmin(initialAdminId);
+    const success = await AdminService.addAdmin(initialAdminId);
+    if (success) {
       logger.info(`Initial admin with ID ${initialAdminId} added.`);
     } else {
       logger.info(`Admin with ID ${initialAdminId} already exists.`);
     }
   } else {
-    logger.error('No ADMIN_ID found in .env file.');
+    logger.error('No ADMIN_ID configured in environment.');
   }
 
-  // Set up all commands
   setupBotCommands(bot);
+  await bot.start();
 
-  // Start the bot
-  bot.start();
+  logger.info('Bot started successfully');
+
 }).catch((err) => {
   logger.error('Failed to initialize database:', err);
+  process.exit(1);
 });

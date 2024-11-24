@@ -1,6 +1,6 @@
 import { Context, InlineKeyboard } from 'grammy';
-import {logger} from '../utils';
-import { getDbClient } from '../db';
+import { logger } from '../utils';
+import { EventService } from '../services';
 import { ButtonText, MessageText, Action } from '../const';
 
 export const eventCommand = async (ctx: Context) => {
@@ -23,21 +23,10 @@ export const eventCommand = async (ctx: Context) => {
     return;
   }
 
-  const db = await getDbClient();
   try {
-    logger.info(`Creating event: "${eventDescription}" with max attendees: ${maxAttendees}`);
-
-    const result = await db.query(
-        'INSERT INTO events (description, max_attendees) VALUES ($1, $2) RETURNING id',
-        [eventDescription, maxAttendees]
-    );
-
-    const eventId = result.rows[0].id;
-    logger.info(`Event created with ID: ${eventId}`);
-
     const keyboard = new InlineKeyboard()
-        .text(ButtonText.Register, `${Action.Register}:${eventId}`)
-        .text(ButtonText.Unregister, `${Action.Unregister}:${eventId}`);
+      .text(ButtonText.Register, `${Action.Register}:`)
+      .text(ButtonText.Unregister, `${Action.Unregister}:`);
 
     const messageThreadId = ctx.message?.message_thread_id;
 
@@ -49,8 +38,24 @@ export const eventCommand = async (ctx: Context) => {
 
     logger.info(`Event message sent with ID: ${message.message_id}`);
 
-    await db.query('UPDATE events SET message_id = $1 WHERE id = $2', [message.message_id, eventId]);
-    logger.info(`Event ID ${eventId} updated with message ID ${message.message_id}`);
+    const event = await EventService.createEvent(eventDescription, maxAttendees, message.message_id);
+
+    if (event) {
+      // Update keyboard with actual event ID
+      const updatedKeyboard = new InlineKeyboard()
+        .text(ButtonText.Register, `${Action.Register}:${event.id}`)
+        .text(ButtonText.Unregister, `${Action.Unregister}:${event.id}`);
+
+      await ctx.api.editMessageReplyMarkup(ctx.chat?.id || 0, message.message_id, {
+        reply_markup: updatedKeyboard
+      });
+
+      logger.info(`Event ID ${event.id} updated with message ID ${message.message_id}`);
+    } else {
+      logger.error('Failed to create event');
+      await ctx.reply(MessageText.Error);
+      return;
+    }
 
     if (ctx.message?.message_id && ctx.chat?.id) {
       await ctx.api.deleteMessage(ctx.chat.id, ctx.message.message_id);
@@ -59,8 +64,5 @@ export const eventCommand = async (ctx: Context) => {
   } catch (err) {
     logger.error('Error creating event:', err);
     await ctx.reply(MessageText.Error);
-  } finally {
-    db.release();
-    logger.info('Database connection released after event creation');
   }
 };

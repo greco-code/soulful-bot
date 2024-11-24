@@ -4,7 +4,7 @@ export const ButtonText = {
 }
 
 export const MessageText = {
-  Welcome: 'Добро пожаловать в Event Bot! Используйте /event для создания нового события.',
+  Welcome: 'Привет! Я Soufult Bot. Используйте /event для создания нового события.',
   ProvideEventInfo: 'Пожалуйста, укажите описание события и максимальное количество участников.',
   InvalidNumber: 'Пожалуйста, укажите допустимое количество участников.',
   AlreadyRegistered: 'Вы уже записались.',
@@ -31,4 +31,12 @@ export const MessageText = {
   InvalidRemoveCommand: 'Неверная команда. Используйте /removeplayer <имя>',
   PlayerNotInList: 'Этого игрока нет в списке.',
   PlayerRemoved: 'Игрок успешно удалён.',
+  NewDescriptionNeeded: 'Пожалуйста, укажите новое описание.',
+  InputTooLong: 'Введённый текст слишком длинный (максимум 100 символов).',
+};
+
+// Validation limits
+export const Limits = {
+  MaxPlayerNameLength: 100,
+  MaxDescriptionLength: 500,
 };

@@ -10,11 +10,8 @@ WORKDIR /app
 # Copy the package.json and yarn.lock files
 COPY package.json yarn.lock ./
 
-# Install all dependencies (including dev dependencies)
-RUN yarn install --frozen-lockfile
-
-# Install PM2 globally
-RUN yarn global add pm2
+# Install dependencies
+RUN yarn install
 
 # Copy the wait-for-it script and make it executable
 COPY wait-for-it.sh /usr/local/bin/wait-for-it.sh
@@ -33,4 +30,4 @@ ENV NODE_ENV production
 EXPOSE 3000
 
 # Start the bot
-CMD ["pm2-runtime", "start", "ecosystem.config.js"]
+CMD ["node", "build/index.js"]

@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   postgres:
     image: postgres:13-alpine
@@ -25,7 +23,7 @@ services:
       PGUSER: ${PGUSER}
       PGPASSWORD: ${PGPASSWORD}
       PGDATABASE: ${PGDATABASE}
-      PGHOST: ${PGHOST}
+      PGHOST: postgres
       PGPORT: ${PGPORT}
       DATABASE_URL: postgres://${PGUSER}:${PGPASSWORD}@postgres:${PGPORT}/${PGDATABASE}
     depends_on:
@@ -34,7 +32,7 @@ services:
       - "3000:3000"
     networks:
       - soulful-network
-    command: yarn dev
+    command: node build/index.js
 
 networks:
   soulful-network:

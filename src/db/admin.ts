@@ -42,3 +42,19 @@ export const isAdmin = async (userId: number): Promise<boolean> => {
     client.release();
   }
 };
+
+export const getAdminCount = async (): Promise<number> => {
+  const client = await getDbClient();
+  try {
+    logger.info('Getting admin count');
+    const result = await client.query('SELECT COUNT(*) as count FROM admins');
+    const count = parseInt(result.rows[0].count, 10);
+    logger.info(`Admin count: ${count}`);
+    return count;
+  } catch (err) {
+    logger.error('Error getting admin count:', err);
+    return 0;
+  } finally {
+    client.release();
+  }
+}
