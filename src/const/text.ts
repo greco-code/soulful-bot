@@ -2,7 +2,9 @@ import { Commands } from './commands';
 
 export const ButtonText = {
   Register: '👍 Записаться',
-  Unregister: '🚫 Отменить запись'
+  Unregister: '🚫 Отменить запись',
+  AddGuest: '➕ +1',
+  RemoveGuest: '➖ -1',
 }
 
 export const MessageText = {
@@ -41,6 +43,10 @@ export const MessageText = {
   NotRegistered: 'Вы ещё не записаны.',
   RSVPConfirmed: 'Вы записаны.',
   RSVCanceled: 'Ваша запись отменена.',
+  GuestAdded: '+1 добавлен.',
+  GuestRemoved: '+1 удалён.',
+  NoGuestToRemove: 'У вас нет +1 для удаления.',
+  NotRegisteredForGuest: 'Сначала зарегистрируйтесь на событие.',
   EventNotFound: 'Событие не найдено.',
   AttendeeList: 'Предварительный состав:',
   InvalidAction: 'Несуществующая команда.',

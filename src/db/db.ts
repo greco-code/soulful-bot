@@ -52,8 +52,15 @@ export const initDb = async () => {
         id SERIAL PRIMARY KEY,
         event_id BIGINT NOT NULL REFERENCES events(id),
         user_id BIGINT,
-        name TEXT NOT NULL
+        name TEXT NOT NULL,
+        guest_of_user_id BIGINT
       );
+    `);
+    
+    // Add guest_of_user_id column if it doesn't exist (for existing databases)
+    await client.query(`
+      ALTER TABLE attendees 
+      ADD COLUMN IF NOT EXISTS guest_of_user_id BIGINT;
     `);
 
     await client.query(`

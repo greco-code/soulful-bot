@@ -30,7 +30,10 @@ export const eventCommand = async (ctx: Context) => {
   try {
     const keyboard = new InlineKeyboard()
       .text(ButtonText.Register, `${Action.Register}:`)
-      .text(ButtonText.Unregister, `${Action.Unregister}:`);
+      .text(ButtonText.Unregister, `${Action.Unregister}:`)
+      .row()
+      .text(ButtonText.AddGuest, `${Action.AddGuest}:`)
+      .text(ButtonText.RemoveGuest, `${Action.RemoveGuest}:`);
 
     const messageThreadId = ctx.message?.message_thread_id;
 
@@ -48,7 +51,10 @@ export const eventCommand = async (ctx: Context) => {
       // Update keyboard with actual event ID
       const updatedKeyboard = new InlineKeyboard()
         .text(ButtonText.Register, `${Action.Register}:${event.id}`)
-        .text(ButtonText.Unregister, `${Action.Unregister}:${event.id}`);
+        .text(ButtonText.Unregister, `${Action.Unregister}:${event.id}`)
+        .row()
+        .text(ButtonText.AddGuest, `${Action.AddGuest}:${event.id}`)
+        .text(ButtonText.RemoveGuest, `${Action.RemoveGuest}:${event.id}`);
 
       await ctx.api.editMessageReplyMarkup(ctx.chat?.id || 0, message.message_id, {
         reply_markup: updatedKeyboard

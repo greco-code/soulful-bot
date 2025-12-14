@@ -12,33 +12,52 @@ export const updateAttendeeList = async (
   const db = await getDbClient();
 
   try {
-    const attendeesResult = await db.query('SELECT name, user_id FROM attendees WHERE event_id = $1', [eventId]);
+    // Get all attendees including guests
+    // Order: group guests with their user (COALESCE), then user before guests (NULLS FIRST), then by id
+    const attendeesResult = await db.query(
+      'SELECT name, user_id, guest_of_user_id FROM attendees WHERE event_id = $1 ORDER BY COALESCE(guest_of_user_id, user_id), CASE WHEN guest_of_user_id IS NULL THEN 0 ELSE 1 END, id',
+      [eventId]
+    );
     const attendees = attendeesResult.rows;
 
+    let attendeeIndex = 0;
     const attendeeList = await Promise.all(
-      attendees.map(async (row: { name: string; user_id: number }, index: number) => {
+      attendees.map(async (row: { name: string; user_id: number | null; guest_of_user_id: number | null }) => {
         try {
           if (!chatId) return;
 
+          // If it's a guest, display it indented under the user
+          if (row.guest_of_user_id) {
+            return `   └─ ${row.name}`;
+          }
+
+          // Regular attendee
+          attendeeIndex++;
           const user = row.user_id
             ? await ctx.api.getChatMember(chatId, row.user_id).then((u) => (u.user.username ? ` (@${u.user.username})` : ''))
             : '';
 
-          return `${index + 1}. ${row.name}${user}`;
+          return `${attendeeIndex}. ${row.name}${user}`;
         } catch (err) {
           logger.error(`Failed to fetch username for user_id: ${row.user_id}`, err);
-          return `${index + 1}. ${row.name}`;
+          if (row.guest_of_user_id) {
+            return `   └─ ${row.name}`;
+          }
+          attendeeIndex++;
+          return `${attendeeIndex}. ${row.name}`;
         }
       })
     );
 
-    const attendeeListText = attendeeList.join('\n');
+    const attendeeListText = attendeeList.filter(Boolean).join('\n');
+    const totalCount = attendees.length;
+    const finalListText = `${attendeeListText}\n\n<b>Всего участников: ${totalCount}</b>`;
     const originalDescription =
       ctx.callbackQuery?.message?.text?.split(`\n\n${MessageText.AttendeeList}`)[0] ||
       ctx.message?.reply_to_message?.text?.split(`\n\n${MessageText.AttendeeList}`)[0] ||
       '';
 
-    const updatedDescription = `${originalDescription.trim()}\n\n${MessageText.AttendeeList}\n${attendeeListText}`;
+    const updatedDescription = `${originalDescription.trim()}\n\n${MessageText.AttendeeList}\n${finalListText}`;
 
     if (chatId && messageId) {
       try {

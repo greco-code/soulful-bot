@@ -88,6 +88,46 @@ export const handleCallbackQuery = async (ctx: Context) => {
             }
 
             await ctx.answerCallbackQuery({ text: MessageText.RSVCanceled });
+
+        } else if (action === Action.AddGuest) {
+            if (!isRegistered) {
+                logger.info(`User ${userId} is not registered for event ID ${eventId}, cannot add guest`);
+                await ctx.answerCallbackQuery({ text: MessageText.NotRegisteredForGuest });
+                return;
+            }
+
+            const canRegister = await PlayerService.canRegisterForEvent(event);
+            if (!canRegister) {
+                logger.info(`Event ID ${eventId} is full. User ${userId} cannot add guest`);
+                await ctx.answerCallbackQuery({ text: MessageText.EventFull });
+                return;
+            }
+
+            const playerName = `${ctx.from.first_name} ${ctx.from.last_name || ''}`.trim();
+            const success = await PlayerService.addGuestToEvent(eventId, userId, playerName);
+
+            if (!success) {
+                await ctx.answerCallbackQuery({ text: MessageText.Error });
+                return;
+            }
+
+            await ctx.answerCallbackQuery({ text: MessageText.GuestAdded });
+
+        } else if (action === Action.RemoveGuest) {
+            if (!isRegistered) {
+                logger.info(`User ${userId} is not registered for event ID ${eventId}`);
+                await ctx.answerCallbackQuery({ text: MessageText.NotRegistered });
+                return;
+            }
+
+            const success = await PlayerService.removeGuestFromEvent(eventId, userId);
+
+            if (!success) {
+                await ctx.answerCallbackQuery({ text: MessageText.NoGuestToRemove });
+                return;
+            }
+
+            await ctx.answerCallbackQuery({ text: MessageText.GuestRemoved });
         }
 
         await updateAttendeeList(ctx, parseInt(eventId), ctx.chatId, ctx.callbackQuery?.message?.message_id);

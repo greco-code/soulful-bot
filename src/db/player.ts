@@ -99,8 +99,12 @@ export const removePlayerFromEventById = async (eventId: string | number, userId
   const client = await getDbClient();
   try {
     logger.info(`Attempting to remove player ${userId} from event with ID: ${eventId}`);
-    await client.query('DELETE FROM attendees WHERE event_id = $1 AND user_id = $2', [eventId, userId]);
-    logger.info(`Player ${userId} removed from event ID ${eventId}`);
+    // Remove the player and all their guests
+    await client.query(
+      'DELETE FROM attendees WHERE event_id = $1 AND (user_id = $2 OR guest_of_user_id = $2)',
+      [eventId, userId]
+    );
+    logger.info(`Player ${userId} and their guests removed from event ID ${eventId}`);
   } catch (err) {
     logger.error('Error removing player from event:', err);
   } finally {
@@ -121,6 +125,61 @@ export const getEventAttendeesWithUserId = async (eventId: string | number) => {
   } catch (err) {
     logger.error('Error fetching attendees with user_id:', err);
     return null;
+  } finally {
+    client.release();
+  }
+};
+
+export const addGuestToEvent = async (eventId: string | number, userId: number, guestName: string) => {
+  const client = await getDbClient();
+  try {
+    logger.info(`Attempting to add guest ${guestName} for user ${userId} to event ID: ${eventId}`);
+    await client.query(
+      'INSERT INTO attendees (event_id, user_id, name, guest_of_user_id) VALUES ($1, NULL, $2, $3)',
+      [eventId, guestName, userId]
+    );
+    logger.info(`Guest ${guestName} added for user ${userId} to event ID: ${eventId}`);
+  } catch (err) {
+    logger.error('Error adding guest to event:', err);
+    throw err;
+  } finally {
+    client.release();
+  }
+};
+
+export const getGuestCountForUser = async (eventId: string | number, userId: number) => {
+  const client = await getDbClient();
+  try {
+    logger.info(`Attempting to get guest count for user ${userId} in event ID: ${eventId}`);
+    const result = await client.query(
+      'SELECT COUNT(*) as count FROM attendees WHERE event_id = $1 AND guest_of_user_id = $2',
+      [eventId, userId]
+    );
+    const count = parseInt(result.rows[0]?.count || '0', 10);
+    logger.info(`User ${userId} has ${count} guests in event ID: ${eventId}`);
+    return count;
+  } catch (err) {
+    logger.error('Error getting guest count:', err);
+    return 0;
+  } finally {
+    client.release();
+  }
+};
+
+export const removeGuestFromEvent = async (eventId: string | number, userId: number) => {
+  const client = await getDbClient();
+  try {
+    logger.info(`Attempting to remove one guest for user ${userId} from event ID: ${eventId}`);
+    const result = await client.query(
+      'DELETE FROM attendees WHERE event_id = $1 AND guest_of_user_id = $2 AND id = (SELECT id FROM attendees WHERE event_id = $1 AND guest_of_user_id = $2 LIMIT 1)',
+      [eventId, userId]
+    );
+    const deleted = result.rowCount || 0;
+    logger.info(`Removed ${deleted} guest(s) for user ${userId} from event ID: ${eventId}`);
+    return deleted > 0;
+  } catch (err) {
+    logger.error('Error removing guest from event:', err);
+    return false;
   } finally {
     client.release();
   }
