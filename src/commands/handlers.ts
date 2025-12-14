@@ -9,7 +9,7 @@ import {
   updateDescriptionCommand,
   updateMaxAttendeesCommand
 } from './admin';
-import { requireAdmin, validateUserId, validateEventMessage, validatePlayerName } from '../middleware';
+import { requireAdmin, validateUserId, validateEventMessage, validatePlayerName, rateLimitCommands, rateLimitCallbacks } from '../middleware';
 import { Commands, EventTypes, MessageText } from '../const';
 
 // Basic commands
@@ -18,6 +18,9 @@ const startCommand = (ctx: Context) => {
 };
 
 export const setupBotCommands = (bot: Bot<Context>) => {
+  // Apply rate limiting to all commands globally
+  bot.use(rateLimitCommands);
+
   // Basic commands
   bot.command(Commands.Start, startCommand);
   bot.command(Commands.Event, eventCommand);
@@ -30,6 +33,6 @@ export const setupBotCommands = (bot: Bot<Context>) => {
   bot.command(Commands.UpdateDescription, validateEventMessage, requireAdmin, updateDescriptionCommand);
   bot.command(Commands.UpdateMax, validateEventMessage, requireAdmin, updateMaxAttendeesCommand);
 
-  // Callback queries
-  bot.on(EventTypes.CallbackQueryData, handleCallbackQuery);
+  // Callback queries with rate limiting
+  bot.on(EventTypes.CallbackQueryData, rateLimitCallbacks, handleCallbackQuery);
 };

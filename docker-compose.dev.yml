@@ -32,7 +32,11 @@ services:
       - "3000:3000"
     networks:
       - soulful-network
-    command: node build/index.js
+    volumes:
+      - ./src:/app/src
+      - ./package.json:/app/package.json
+      - ./tsconfig.json:/app/tsconfig.json
+    command: npx ts-node-dev --respawn --transpile-only src/index.ts
 
 networks:
   soulful-network:
