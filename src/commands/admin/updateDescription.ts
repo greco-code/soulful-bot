@@ -13,6 +13,12 @@ export const updateDescriptionCommand = async (ctx: BotContext) => {
         await ctx.reply(MessageText.NewDescriptionNeeded, {
             message_thread_id: ctx.message?.message_thread_id
         });
+        
+        // Delete command message
+        if (ctx.message?.message_id && ctx.chat?.id) {
+            await ctx.api.deleteMessage(ctx.chat.id, ctx.message.message_id);
+            logger.info(`Deleted updateDescription command message from user ${ctx.from?.id}`);
+        }
         return;
     }
 
@@ -21,6 +27,12 @@ export const updateDescriptionCommand = async (ctx: BotContext) => {
         await ctx.reply(MessageText.EventNotFound, {
             message_thread_id: ctx.message?.message_thread_id
         });
+        
+        // Delete command message
+        if (ctx.message?.message_id && ctx.chat?.id) {
+            await ctx.api.deleteMessage(ctx.chat.id, ctx.message.message_id);
+            logger.info(`Deleted updateDescription command message from user ${ctx.from?.id}`);
+        }
         return;
     }
 
@@ -65,5 +77,11 @@ export const updateDescriptionCommand = async (ctx: BotContext) => {
         await ctx.reply(MessageText.Error, {
             message_thread_id: ctx.message?.message_thread_id
         });
+
+        // Delete command message
+        if (ctx.message?.message_id && ctx.chat?.id) {
+            await ctx.api.deleteMessage(ctx.chat.id, ctx.message.message_id);
+            logger.info(`Deleted updateDescription command message from user ${ctx.from?.id}`);
+        }
     }
 };

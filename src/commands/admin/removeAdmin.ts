@@ -23,5 +23,11 @@ export const removeAdminCommand = async (ctx: BotContext) => {
         await ctx.reply(MessageText.AdminNotExist, {
             message_thread_id: ctx.message?.message_thread_id
         });
+
+        // Delete command message
+        if (ctx.message?.message_id && ctx.chat?.id) {
+            await ctx.api.deleteMessage(ctx.chat.id, ctx.message.message_id);
+            logger.info(`Deleted removeAdmin command message from user ${ctx.from?.id}`);
+        }
     }
 };
