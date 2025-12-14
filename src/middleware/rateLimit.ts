@@ -7,8 +7,8 @@ const lastActionTime = new Map<number, number>();
 
 // Configuration: minimum delay between actions (in milliseconds)
 const DELAY_MS = {
-  COMMAND: 2000,  // 2 seconds between commands
-  CALLBACK: 2000, // 1 second between button clicks
+  COMMAND: 1000,  // 1 seconds between commands
+  CALLBACK: 2000, // 2 second between button clicks
 } as const;
 
 const checkDelay = (userId: number, type: 'COMMAND' | 'CALLBACK'): { allowed: boolean; remaining?: number } => {
@@ -26,69 +26,79 @@ const checkDelay = (userId: number, type: 'COMMAND' | 'CALLBACK'): { allowed: bo
 };
 
 export const rateLimitCommands = async (ctx: Context, next: () => Promise<void>) => {
+  // Only apply to message updates (commands)
+  if (!ctx.message) {
+    await next();
+    return;
+  }
+  
+  const userId = ctx.from?.id;
+  
+  if (!userId) {
+    await next();
+    return;
+  }
+  
   try {
-    // Only apply to message updates (commands)
-    if (!ctx.message) {
-      await next();
-      return;
-    }
-    
-    const userId = ctx.from?.id;
-    
-    if (!userId) {
-      await next();
-      return;
-    }
-    
     const { allowed, remaining } = checkDelay(userId, 'COMMAND');
     
     if (!allowed) {
       logger.warn(`Rate limit exceeded for user ${userId} (commands)`);
-      await ctx.reply(
-        `⏱ Слишком много запросов. Подождите ${remaining} секунды.`,
-        { message_thread_id: ctx.message?.message_thread_id }
-      );
+      try {
+        await ctx.reply(
+          `⏱ Слишком много запросов. Подождите ${remaining} секунду.`,
+          { message_thread_id: ctx.message?.message_thread_id }
+        );
+      } catch (replyError) {
+        logger.error('Error sending rate limit reply:', replyError);
+      }
       return;
     }
     
     await next();
   } catch (error) {
     logger.error('Error in rateLimitCommands middleware:', error);
-    // Don't block on error, allow request through
-    await next();
+    // If error occurred, don't call next() again - it may have already been called
   }
 };
 
 export const rateLimitCallbacks = async (ctx: Context, next: () => Promise<void>) => {
-  try {
-    // Only apply to callback query updates
-    if (!ctx.callbackQuery) {
-      await next();
-      return;
-    }
-    
-    const userId = ctx.from?.id;
-    
-    if (!userId) {
+  // Only apply to callback query updates
+  if (!ctx.callbackQuery) {
+    await next();
+    return;
+  }
+  
+  const userId = ctx.from?.id;
+  
+  if (!userId) {
+    try {
       await ctx.answerCallbackQuery({ text: MessageText.Error });
-      return;
+    } catch (error) {
+      logger.error('Error answering callback query:', error);
     }
-    
+    return;
+  }
+  
+  try {
     const { allowed, remaining } = checkDelay(userId, 'CALLBACK');
     
     if (!allowed) {
       logger.warn(`Rate limit exceeded for user ${userId} (callbacks)`);
-      await ctx.answerCallbackQuery({
-        text: `⏱ Слишком много запросов. Подождите ${remaining} секунд.`,
-        show_alert: true
-      });
+      try {
+        await ctx.answerCallbackQuery({
+          text: `⏱ Слишком много запросов. Подождите ${remaining} секунды.`,
+          show_alert: true
+        });
+      } catch (replyError) {
+        logger.error('Error sending rate limit callback reply:', replyError);
+      }
       return;
     }
     
     await next();
   } catch (error) {
     logger.error('Error in rateLimitCallbacks middleware:', error);
-    // Don't block on error, allow request through
-    await next();
+    // If error occurred, don't call next() again - it may have already been called
   }
 };

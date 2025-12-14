@@ -1,5 +1,6 @@
 export enum Commands {
   Start = 'start',
+  Help = 'help',
   Event = 'event',
   AddAdmin = 'addAdmin',
   RemoveAdmin = 'removeAdmin',

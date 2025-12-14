@@ -11,10 +11,23 @@ import {
 } from './admin';
 import { requireAdmin, validateUserId, validateEventMessage, validatePlayerName, rateLimitCommands, rateLimitCallbacks } from '../middleware';
 import { Commands, EventTypes, MessageText } from '../const';
+import { AdminService } from '../services';
 
 // Basic commands
 const startCommand = (ctx: Context) => {
   ctx.reply(MessageText.Welcome);
+};
+
+const helpCommand = async (ctx: Context) => {
+  const userId = ctx.from?.id;
+  if (!userId) {
+    await ctx.reply(MessageText.Help, { parse_mode: 'HTML', message_thread_id: ctx.message?.message_thread_id });
+    return;
+  }
+
+  const isAdmin = await AdminService.checkAdminStatus(userId);
+  const helpText = isAdmin ? MessageText.HelpAdmin : MessageText.Help;
+  await ctx.reply(helpText, { parse_mode: 'HTML', message_thread_id: ctx.message?.message_thread_id });
 };
 
 export const setupBotCommands = (bot: Bot<Context>) => {
@@ -23,6 +36,7 @@ export const setupBotCommands = (bot: Bot<Context>) => {
 
   // Basic commands
   bot.command(Commands.Start, startCommand);
+  bot.command(Commands.Help, helpCommand);
   bot.command(Commands.Event, eventCommand);
 
   // Admin commands with validation middleware
