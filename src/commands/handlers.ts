@@ -7,9 +7,10 @@ import {
   addPlayerCommand,
   removePlayerCommand,
   updateDescriptionCommand,
-  updateMaxAttendeesCommand
+  updateMaxAttendeesCommand,
+  notifyAllCommand
 } from './admin';
-import { requireAdmin, validateUserId, validateEventMessage, validatePlayerName, rateLimitCommands, rateLimitCallbacks } from '../middleware';
+import { requireAdmin, validateUserId, validateEventMessage, validatePlayerName, validateNotificationText, rateLimitCommands, rateLimitCallbacks } from '../middleware';
 import { Commands, EventTypes, MessageText } from '../const';
 import { AdminService } from '../services';
 import { logger } from '../utils';
@@ -49,6 +50,7 @@ export const setupBotCommands = (bot: Bot<Context>) => {
   bot.command(Commands.RemovePlayer, validatePlayerName, validateEventMessage, requireAdmin, removePlayerCommand);
   bot.command(Commands.UpdateDescription, validateEventMessage, requireAdmin, updateDescriptionCommand);
   bot.command(Commands.UpdateMax, validateEventMessage, requireAdmin, updateMaxAttendeesCommand);
+  bot.command(Commands.NotifyAll, validateNotificationText, validateEventMessage, requireAdmin, notifyAllCommand);
 
   // Callback queries with rate limiting
   bot.on(EventTypes.CallbackQueryData, rateLimitCallbacks, handleCallbackQuery);

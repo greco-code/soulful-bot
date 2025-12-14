@@ -8,6 +8,7 @@ export enum Commands {
   RemovePlayer = 'removePlayer',
   UpdateDescription = 'updateDescription',
   UpdateMax = 'updateMax',
+  NotifyAll = 'notifyAll',
 }
 
 export enum EventTypes {

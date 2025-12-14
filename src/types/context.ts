@@ -5,6 +5,7 @@ export interface BotContext extends Context {
     validatedUserId?: number;
     eventMessageId?: number;
     playerName?: string;
+    notificationText?: string;
 }
 
 

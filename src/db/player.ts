@@ -107,3 +107,21 @@ export const removePlayerFromEventById = async (eventId: string | number, userId
     client.release();
   }
 };
+
+export const getEventAttendeesWithUserId = async (eventId: string | number) => {
+  const client = await getDbClient();
+  try {
+    logger.info(`Attempting to fetch attendees with user_id for event ID: ${eventId}`);
+    const result = await client.query(
+      'SELECT user_id, name FROM attendees WHERE event_id = $1 AND user_id IS NOT NULL',
+      [eventId]
+    );
+    logger.info(`Successfully fetched ${result.rows.length} attendees with user_id for event ID: ${eventId}`);
+    return result;
+  } catch (err) {
+    logger.error('Error fetching attendees with user_id:', err);
+    return null;
+  } finally {
+    client.release();
+  }
+};

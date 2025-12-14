@@ -64,3 +64,30 @@ export const validatePlayerName = async (ctx: Context, next: () => Promise<void>
         await ctx.reply(MessageText.Error, { message_thread_id: ctx.message?.message_thread_id });
     }
 };
+
+export const validateNotificationText = async (ctx: Context, next: () => Promise<void>) => {
+    try {
+        const textParts = ctx.message?.text?.split(' ').slice(1);
+        const notificationText = textParts?.join(' ').trim();
+
+        if (!notificationText) {
+            logger.warn('No notification text provided');
+            await ctx.reply('Пожалуйста, укажите текст для уведомления.', { 
+                message_thread_id: ctx.message?.message_thread_id 
+            });
+            return;
+        }
+
+        if (notificationText.length > Limits.MaxDescriptionLength) {
+            logger.warn(`Notification text too long: ${notificationText.length} chars`);
+            await ctx.reply(MessageText.InputTooLong, { message_thread_id: ctx.message?.message_thread_id });
+            return;
+        }
+
+        (ctx as BotContext).notificationText = notificationText;
+        await next();
+    } catch (error) {
+        logger.error('Error in validateNotificationText middleware:', error);
+        await ctx.reply(MessageText.Error, { message_thread_id: ctx.message?.message_thread_id });
+    }
+};
