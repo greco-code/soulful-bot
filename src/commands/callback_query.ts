@@ -30,6 +30,20 @@ export const handleCallbackQuery = async (ctx: Context) => {
         if (!event) {
             logger.warn(`Event ID ${eventId} not found`);
             await ctx.answerCallbackQuery({ text: MessageText.EventNotFound });
+            
+            // Remove buttons from message since event no longer exists
+            const messageId = ctx.callbackQuery?.message?.message_id;
+            const chatId = ctx.chatId;
+            if (messageId && chatId) {
+                try {
+                    await ctx.api.editMessageReplyMarkup(chatId, messageId, {
+                        reply_markup: undefined
+                    });
+                    logger.info(`Removed buttons from deleted event message ${messageId}`);
+                } catch (error) {
+                    logger.error('Error removing buttons from deleted event:', error);
+                }
+            }
             return;
         }
 
