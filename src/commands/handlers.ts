@@ -54,17 +54,30 @@ export const setupBotCommands = (bot: Bot<Context>) => {
   bot.on(EventTypes.CallbackQueryData, rateLimitCallbacks, handleCallbackQuery);
 
   // Handle unknown commands (must be last, after all command handlers)
+  // Only catch messages that are actual commands (have command entities) but weren't handled by Grammy
   bot.on('message:text', async (ctx, next) => {
     const text = ctx.message?.text;
-    // Check if it's a command (starts with /) but wasn't handled by any command handler
-    if (text?.startsWith('/')) {
-      logger.warn(`Unknown command received: ${text} from user ${ctx.from?.id}`);
-      await ctx.reply(MessageText.UnknownCommand, {
-        message_thread_id: ctx.message?.message_thread_id
-      });
-      return;
+    const entities = ctx.message?.entities;
+    
+    // Check if this message has a command entity (bot_command)
+    const isCommand = entities?.some(entity => entity.type === 'bot_command');
+    
+    if (isCommand && text?.startsWith('/')) {
+      // Extract command name (everything before space or @), remove leading /
+      const commandName = text.split(/[\s@]/)[0].substring(1);
+      const registeredCommands = Object.values(Commands);
+      
+      // Only show unknown command if it's not in our registered commands (case-sensitive check)
+      if (!registeredCommands.includes(commandName as Commands)) {
+        logger.warn(`Unknown command received: ${text} from user ${ctx.from?.id}`);
+        await ctx.reply(MessageText.UnknownCommand, {
+          message_thread_id: ctx.message?.message_thread_id
+        });
+        return;
+      }
     }
-    // If it's not a command, pass to next handler (if any)
+    
+    // If it's not a command or it's a known command, pass to next handler
     await next();
   });
 };

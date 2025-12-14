@@ -27,10 +27,31 @@ export const updateDescriptionCommand = async (ctx: BotContext) => {
     const success = await EventService.updateEventDescription(event.id, newDescription);
 
     if (success) {
+        // Get current message text to preserve attendee list if it exists
+        const currentMessageText = ctx.message?.reply_to_message?.text || '';
+        const attendeeListSeparator = `\n\n${MessageText.AttendeeList}\n`;
+        
+        // Check if message has attendee list
+        const hasAttendeeList = currentMessageText.includes(attendeeListSeparator);
+        let updatedMessageText = newDescription;
+        
+        if (hasAttendeeList) {
+            // Preserve attendee list
+            const attendeeListPart = currentMessageText.split(attendeeListSeparator)[1];
+            updatedMessageText = `${newDescription}${attendeeListSeparator}${attendeeListPart}`;
+        }
+
+        // Preserve keyboard/reply_markup
+        const replyMarkup = ctx.message?.reply_to_message?.reply_markup;
+
         await ctx.api.editMessageText(
             ctx.chat?.id || 0,
             messageId,
-            `📅 Event Updated: ${newDescription}\n🧑‍🤝‍🧑 Max Attendees: ${event.max_attendees}`
+            updatedMessageText,
+            {
+                reply_markup: replyMarkup,
+                parse_mode: 'HTML'
+            }
         );
 
         logger.info(`Updated description for event ID: ${event.id}`);
