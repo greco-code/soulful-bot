@@ -10,7 +10,9 @@ export const eventCommand = async (ctx: Context) => {
 
   if (!args || args.length === 0) {
     logger.warn('No event information provided');
-    await ctx.reply(MessageText.ProvideEventInfo);
+    await ctx.reply(MessageText.ProvideEventInfo, {
+      message_thread_id: ctx.message?.message_thread_id
+    });
     return;
   }
 
@@ -19,7 +21,9 @@ export const eventCommand = async (ctx: Context) => {
 
   if (isNaN(maxAttendees)) {
     logger.warn('Invalid number of attendees provided');
-    await ctx.reply(MessageText.InvalidNumber);
+    await ctx.reply(MessageText.InvalidNumber, {
+      message_thread_id: ctx.message?.message_thread_id
+    });
     return;
   }
 
@@ -53,7 +57,9 @@ export const eventCommand = async (ctx: Context) => {
       logger.info(`Event ID ${event.id} updated with message ID ${message.message_id}`);
     } else {
       logger.error('Failed to create event');
-      await ctx.reply(MessageText.Error);
+      await ctx.reply(MessageText.Error, {
+        message_thread_id: ctx.message?.message_thread_id
+      });
       return;
     }
 
@@ -63,6 +69,8 @@ export const eventCommand = async (ctx: Context) => {
     }
   } catch (err) {
     logger.error('Error creating event:', err);
-    await ctx.reply(MessageText.Error);
+    await ctx.reply(MessageText.Error, {
+      message_thread_id: ctx.message?.message_thread_id
+    });
   }
 };

@@ -12,10 +12,13 @@ import {
 import { requireAdmin, validateUserId, validateEventMessage, validatePlayerName, rateLimitCommands, rateLimitCallbacks } from '../middleware';
 import { Commands, EventTypes, MessageText } from '../const';
 import { AdminService } from '../services';
+import { logger } from '../utils';
 
 // Basic commands
 const startCommand = (ctx: Context) => {
-  ctx.reply(MessageText.Welcome);
+  ctx.reply(MessageText.Welcome, {
+    message_thread_id: ctx.message?.message_thread_id
+  });
 };
 
 const helpCommand = async (ctx: Context) => {
@@ -49,4 +52,19 @@ export const setupBotCommands = (bot: Bot<Context>) => {
 
   // Callback queries with rate limiting
   bot.on(EventTypes.CallbackQueryData, rateLimitCallbacks, handleCallbackQuery);
+
+  // Handle unknown commands (must be last, after all command handlers)
+  bot.on('message:text', async (ctx, next) => {
+    const text = ctx.message?.text;
+    // Check if it's a command (starts with /) but wasn't handled by any command handler
+    if (text?.startsWith('/')) {
+      logger.warn(`Unknown command received: ${text} from user ${ctx.from?.id}`);
+      await ctx.reply(MessageText.UnknownCommand, {
+        message_thread_id: ctx.message?.message_thread_id
+      });
+      return;
+    }
+    // If it's not a command, pass to next handler (if any)
+    await next();
+  });
 };

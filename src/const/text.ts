@@ -59,6 +59,7 @@ export const MessageText = {
   PlayerRemoved: 'Игрок успешно удалён.',
   NewDescriptionNeeded: 'Пожалуйста, укажите новое описание.',
   InputTooLong: 'Введённый текст слишком длинный (максимум 100 символов).',
+  UnknownCommand: '❌ Неизвестная команда. Используйте /help для просмотра доступных команд.',
 };
 
 // Validation limits
