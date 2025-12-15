@@ -87,32 +87,9 @@ export const updateEventMaxAttendees = async (eventId: string | number, maxAtten
 export const cleanupOldEvents = async (daysOld: number = 30) => {
   const client = await getDbClient();
   try {
-    // Calculate the cutoff date
     const cutoffDate = new Date();
-    // Handle fractional days (for testing with minutes)
-    if (daysOld < 1) {
-      cutoffDate.setTime(cutoffDate.getTime() - (daysOld * 24 * 60 * 60 * 1000));
-    } else {
-      cutoffDate.setDate(cutoffDate.getDate() - daysOld);
-    }
+    cutoffDate.setDate(cutoffDate.getDate() - daysOld);
     
-    logger.info(`🧹 Cleanup: Looking for events older than ${daysOld} days (before ${cutoffDate.toISOString()})`);
-    
-    // First, count how many events will be deleted (for logging)
-    const countResult = await client.query(
-      `SELECT COUNT(*) as count FROM events WHERE created_at < $1`,
-      [cutoffDate]
-    );
-    const eventsToDelete = parseInt(countResult.rows[0]?.count || '0', 10);
-    logger.info(`📊 Found ${eventsToDelete} old event(s) to delete`);
-    
-    if (eventsToDelete === 0) {
-      logger.info('✨ No old events found, cleanup skipped');
-      return { deletedEvents: 0, deletedAttendees: 0 };
-    }
-    
-    // First, delete all attendees for old events
-    logger.info('🗑️  Deleting attendees for old events...');
     const attendeesResult = await client.query(
       `DELETE FROM attendees 
        WHERE event_id IN (
@@ -122,21 +99,17 @@ export const cleanupOldEvents = async (daysOld: number = 30) => {
       [cutoffDate]
     );
     const deletedAttendees = attendeesResult.rowCount || 0;
-    logger.info(`   ✓ Deleted ${deletedAttendees} attendee record(s)`);
     
-    // Then, delete the old events themselves
-    logger.info('🗑️  Deleting old events...');
     const eventsResult = await client.query(
       `DELETE FROM events 
        WHERE created_at < $1`,
       [cutoffDate]
     );
     const deletedEvents = eventsResult.rowCount || 0;
-    logger.info(`   ✓ Deleted ${deletedEvents} event(s)`);
     
     return { deletedEvents, deletedAttendees };
   } catch (err) {
-    logger.error('❌ Error cleaning up old events:', err);
+    logger.error('Error cleaning up old events:', err);
     throw err;
   } finally {
     client.release();
