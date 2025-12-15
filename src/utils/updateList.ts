@@ -20,9 +20,9 @@ export const updateAttendeeList = async (
     );
     const attendees = attendeesResult.rows;
 
-    let attendeeIndex = 0;
+    // Calculate index for each attendee based on position (excluding guests)
     const attendeeList = await Promise.all(
-      attendees.map(async (row: { name: string; user_id: number | null; guest_of_user_id: number | null }) => {
+      attendees.map(async (row: { name: string; user_id: number | null; guest_of_user_id: number | null }, index: number) => {
         try {
           if (!chatId) return;
 
@@ -31,8 +31,10 @@ export const updateAttendeeList = async (
             return `   └─ ${row.name}`;
           }
 
+          // Calculate attendee index by counting non-guest attendees before this one
+          const attendeeIndex = attendees.slice(0, index).filter(r => !r.guest_of_user_id).length + 1;
+
           // Regular attendee
-          attendeeIndex++;
           const user = row.user_id
             ? await ctx.api.getChatMember(chatId, row.user_id).then((u) => (u.user.username ? ` (@${u.user.username})` : ''))
             : '';
@@ -43,7 +45,8 @@ export const updateAttendeeList = async (
           if (row.guest_of_user_id) {
             return `   └─ ${row.name}`;
           }
-          attendeeIndex++;
+          // Calculate index for error case too
+          const attendeeIndex = attendees.slice(0, index).filter(r => !r.guest_of_user_id).length + 1;
           return `${attendeeIndex}. ${row.name}`;
         }
       })
