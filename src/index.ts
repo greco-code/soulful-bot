@@ -3,6 +3,7 @@ import { Bot } from 'grammy';
 import { setupBotCommands } from './commands';
 import { AdminService } from './services';
 import { initDb, closeDb } from './db';
+import { cleanupOldEvents } from './db/event';
 
 logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
 
@@ -56,8 +57,66 @@ initDb().then(async () => {
   }
 
   setupBotCommands(bot);
-  await bot.start();
 
+  // Cleanup function - MUST be set up BEFORE bot.start()
+  // For testing: using 1 minute instead of 30 days
+  const DAYS_OLD = process.env.NODE_ENV === 'development' ? 0.0007 : 30; // ~1 minute for dev, 30 days for prod
+  let cleanupRunCount = 0;
+  
+  const runCleanup = async () => {
+    cleanupRunCount++;
+    const runNumber = cleanupRunCount;
+    try {
+      const threshold = DAYS_OLD < 1 ? `${Math.round(DAYS_OLD * 24 * 60)} minutes` : `${DAYS_OLD} days`;
+      logger.info(`⏰ [Run #${runNumber}] Starting scheduled cleanup of old events (older than ${threshold})...`);
+      const result = await cleanupOldEvents(DAYS_OLD);
+      if (result.deletedEvents > 0 || result.deletedAttendees > 0) {
+        logger.info(`✅ [Run #${runNumber}] Cleanup completed: ${result.deletedEvents} events and ${result.deletedAttendees} attendees removed`);
+      } else {
+        logger.info(`✅ [Run #${runNumber}] Cleanup completed: No old events found to delete`);
+      }
+    } catch (err) {
+      logger.error(`❌ [Run #${runNumber}] Error during scheduled cleanup:`, err);
+    }
+  };
+
+  // Schedule periodic cleanup using recursive setTimeout (MUST be before bot.start())
+  // TODO: Change to 24 hours in production: 24 * 60 * 60 * 1000
+  const CLEANUP_INTERVAL_MS = 60 * 1000; // 1 minute in milliseconds (for testing)
+  
+  logger.info(`⏱️  Setting up periodic cleanup to run every ${CLEANUP_INTERVAL_MS / 1000} seconds (BEFORE bot.start())...`);
+  
+  const scheduleNextCleanup = () => {
+    const timeoutId = setTimeout(async () => {
+      try {
+        logger.info(`🔔 Scheduled cleanup triggered! (Timeout ID: ${timeoutId})`);
+        await runCleanup();
+      } catch (err) {
+        logger.error('❌ Error in scheduled cleanup, but continuing schedule:', err);
+      } finally {
+        // Always schedule the next one, even if there was an error
+        logger.info(`📅 Scheduling next cleanup in ${CLEANUP_INTERVAL_MS / 1000} seconds...`);
+        scheduleNextCleanup();
+      }
+    }, CLEANUP_INTERVAL_MS);
+    
+    logger.info(`⏰ Next cleanup scheduled with timeout ID: ${timeoutId}`);
+    return timeoutId;
+  };
+  
+  // Start the recursive scheduling BEFORE bot.start()
+  const firstTimeoutId = scheduleNextCleanup();
+  logger.info(`✅ Periodic cleanup scheduled (first timeout ID: ${firstTimeoutId}, runs every ${CLEANUP_INTERVAL_MS / 1000} seconds)`);
+  
+  // Store in global to prevent garbage collection
+  (global as any).cleanupTimeoutId = firstTimeoutId;
+
+  // Run cleanup immediately on startup (before bot.start())
+  logger.info('🚀 Running initial cleanup on startup...');
+  await runCleanup();
+
+  // NOW start the bot (timers are already registered in event loop)
+  await bot.start();
   logger.info('Bot started successfully');
 
 }).catch((err) => {
