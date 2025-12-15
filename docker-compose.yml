@@ -29,7 +29,7 @@ services:
       PGDATABASE: ${PGDATABASE}
       PGHOST: ${PGHOST}
       PGPORT: ${PGPORT}
-      DATABASE_URL: postgres://${PGUSER}:${PGPASSWORD}@postgres:5432/${PGDATABASE}
+      DATABASE_URL: postgres://${PGUSER}:${PGPASSWORD_ENCODED}@postgres:5432/${PGDATABASE}
     depends_on:
       - postgres
     networks:
