@@ -204,6 +204,27 @@ Users can register or unregister from events by clicking the inline buttons prov
 
 Admins can add or remove attendees manually and manage other admins. Only admins can perform these actions.
 
+## Local regression tests
+
+No Telegram token, database, Neon project, or environment file is needed:
+
+```bash
+yarn install --frozen-lockfile
+yarn test
+yarn test:types
+yarn build
+```
+
+The baseline uses Jest with ts-jest for the existing CommonJS TypeScript code.
+It covers event creation, signup callbacks, guests, admin command routing,
+service checks, and attendee-list rendering. Database connections, file logging,
+and Telegram calls are mocked; real pg/dotenv imports and Telegram network
+attempts fail the suite. Tests use synthetic users and chats.
+
+These are regression tests, not a substitute for PostgreSQL integration tests
+or development-bot checks. Known existing defects and follow-up steps are tracked
+in [the implementation checklist](docs/v2-implementation.md).
+
 ## Testing Production-Like Environment
 
 To test your bot in a production-like environment locally:

@@ -7,7 +7,9 @@
     "start": "node build/index.js",
     "startDev": "dotenv -e .env.dev -- node build/index.js",
     "dev": "dotenv -e .env.dev -- ts-node-dev --respawn --transpile-only src/index.ts",
-    "cleanAll": "rm -rf node_modules yarn.lock build"
+    "cleanAll": "rm -rf node_modules yarn.lock build",
+    "test": "jest --runInBand",
+    "test:types": "tsc -p tsconfig.test.json"
   },
   "keywords": [],
   "author": "George Vesper",
@@ -22,9 +24,12 @@
     "winston": "3.14.1"
   },
   "devDependencies": {
+    "@types/jest": "30.0.0",
     "@types/node": "^20.0.0",
     "@types/pg": "8.11.6",
     "dotenv-cli": "7.4.2",
+    "jest": "30.2.0",
+    "ts-jest": "29.4.5",
     "typescript": "5.5.4"
   }
 }

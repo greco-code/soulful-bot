@@ -12,13 +12,13 @@ Use one focused change or PR per step where practical. Do not auto-commit or pus
 
 - Development branch: `codex/v2`.
 - Setup complete: project instructions and implementation checklist created; Karpathy Guidelines installed globally in Codex.
-- Application code and production deployment unchanged.
-- Next: step 1, baseline tests.
+- Step 1 complete: 40 regression tests in five suites; application code and production deployment unchanged.
+- Next: step 2, development runtime and validated configuration.
 - Live database location, backups, credentials, and chat mappings have not been verified.
 
 ## Steps
 
-### 1. Baseline acceptance cases and regression tests — pending
+### 1. Baseline acceptance cases and regression tests — complete
 
 Scope: establish repeatable local verification before changing the core.
 
@@ -83,3 +83,18 @@ Deadline automation, delayed publication, recurring events, scheduled reminders,
 
 - 2026-10-05: workflow setup only. Confirmed `codex/v2` exists; reviewed the installed skill (one Markdown file); added repo instructions and this checklist. No application code, dependencies, production services, or databases changed.
 - 2026-10-05: reconciled the canonical roadmap and Codex plan snapshot, checked the checklist against the agreed scope, and added the source-of-truth rule to AGENTS.md. Step 1 remains pending.
+
+- 2026-10-05: step 1 complete. Baseline and final `yarn build` passed on local Node 24.19.0. `yarn test` passed 40 tests across five suites; `yarn test:types` passed. Jest/ts-jest are dev-only dependencies; no existing dependency versions changed. Tests mock the database connection, file logger, and Telegram boundary; loading pg/dotenv or attempting Telegram network calls fails the suite. No production source changes or testability refactors were needed. Docker's Node 18 runtime was not tested; runtime alignment belongs to step 2.
+
+## Known existing defects to address in later steps
+
+These are source-review findings, not accepted behaviour or claims established by database integration tests. Add failing regression cases when implementing each fix.
+
+- Steps 4/7: `/event` is registered without admin authentication; event lookups use message ID without chat identity, and callbacks do not verify ownership of their source message.
+- Step 5: capacity checks and inserts are separate operations, with no uniqueness constraint protecting concurrent registrations; manual additions bypass capacity checks.
+- Steps 4/5/7: several database helpers swallow write errors, allowing services to report success after a failed write. Review failure propagation while refactoring each affected flow.
+- Step 5: manual removal by name does not remove a registered player's guests, unlike removal by Telegram ID.
+- Step 6: event creation accepts non-positive or partially numeric capacity values, and rendered names/descriptions are not consistently escaped for Telegram HTML.
+- Steps 7/8: the registration message is sent before persistence, so failures can leave an orphan post; delivery failures are logged without recovery.
+
+The baseline mocks SQL results and cannot establish database concurrency, constraint, or transaction correctness. Real PostgreSQL integration tests remain in step 3 and the corresponding feature steps.
